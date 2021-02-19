@@ -71,13 +71,3 @@ module Statements where
                     | otherwise = fix (maxIter-1) f sta1 s0 sn1     -- Do another application of f
                     where sta1 = compose f sta                      -- compose F with the rest of the chain to get the statement of order +1
                           sn1 = evalS sta1 s0                       -- Iteration f(n+1)
-
-    -- Here I use the while semantics defined as D[While b do S]T = B[!b] (lfp(\T' -> T U(D[s] . B[b]T']))). I observe that the lfp gives me the invariant of the cycle and B[!b] lfp
-    -- gives the exiting condition. The strongest invariant for the cycle, given the precondition T (e.g T[x->2, y->3]) is given by all combinations of states x,y that i get during computation.
-    -- E.g. while (x>0) do (x:=x-1; y:=y+1), the invariant given T is [x->2, y->3] V [x->1, y->4] V [x->0, y->5]. The exiting condition is [x<=0] And [x->2, y->3] V [x->1, y->4] V [x->0, y->5] =
-    -- = [x->0, y->5]. The only thing I care about is the exiting condition, so I can discard all intermediate states, leaving B[!b] (lfp(\T' -> D[s] . B[b]T'])) starting from T.
-    -- I model this iterating on previous states until I reach a fixpoint (old state = this state), at this point I can have 2 situations: the cycle terminates so trivially the guard is false
-    -- in this case I can return the current state as exiting condition. The second case is when the cycle does not terminate e.g (while true do skip) the fixpoint iteration stops early but the
-    -- guard is true, so doind (!true) And (some exiting state) gives the bottom element or undefined. In this case the exercise states I should keep going so I added a condition for this in the
-    -- fixpoint function. If the fixpoint iteration continues for ever, I certantly have an infinite loop, because to keep going I need ever new states, to do that I need to execute D[s] but to 
-    -- do that I need the guard always true, so I loop.
