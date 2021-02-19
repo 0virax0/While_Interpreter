@@ -57,7 +57,7 @@ module Statements where
     evalS (Concatenation st1 st2) s = (evalS st2 . evalS st1) s         -- Sds[st2]s . Sds[st1]s
     evalS (If b st1 st2) s | evalE b s == tt = evalS st1 s              -- {st1 s if b s == tt
                            | otherwise = evalS st2 s                    --  st2 s if b s == ff}
-    evalS (While b s1) s = fix 100 (While b s1) Skip s s                    -- Sds[while b do S]s = Fix F 
+    evalS (While b s1) s = fix (While b s1) Skip s s                    -- Sds[while b do S]s = Fix F 
 
     -- put a statement inside another statement F(F)
     compose :: Statement -> Statement -> Statement
@@ -65,9 +65,8 @@ module Statements where
     compose (While b sta1) sta2  = If b (Concatenation sta1 sta2) (Assignment "termCond" (Avalue 1))        -- in case we have a while
 
     -- from f, current composed statement, initial state and previous state, I get the final one
-    fix :: Int -> Statement -> Statement -> State -> State -> State
-    fix maxIter f sta s0 sn | maxIter == 0 = sn
-                    | (lookupVariable "termCond" sn1 /= Nothing) && sn == sn1 = sn1     -- I reached a fix point, return final state if the termination guard is false otherwise keep going forever
-                    | otherwise = fix (maxIter-1) f sta1 s0 sn1     -- Do another application of f
+    fix :: Statement -> Statement -> State -> State -> State
+    fix f sta s0 sn | (lookupVariable "termCond" sn1 /= Nothing) && sn == sn1 = sn1     -- I reached a fix point, return final state if the termination guard is false otherwise keep going forever
+                    | otherwise = fix f sta1 s0 sn1                 -- Do another application of f
                     where sta1 = compose f sta                      -- compose F with the rest of the chain to get the statement of order +1
                           sn1 = evalS sta1 s0                       -- Iteration f(n+1)
