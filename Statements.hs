@@ -57,16 +57,20 @@ module Statements where
     evalS (Concatenation st1 st2) s = (evalS st2 . evalS st1) s         -- Sds[st2]s . Sds[st1]s
     evalS (If b st1 st2) s | evalE b s == tt = evalS st1 s              -- {st1 s if b s == tt
                            | otherwise = evalS st2 s                    --  st2 s if b s == ff}
-    evalS (While b s1) s = fix (While b s1) Skip s s                    -- Sds[while b do S]s = Fix F 
+    evalS (While b s1) s = iter (While b s1) Skip s s                    -- Sds[while b do S]s = Fix F 
 
     -- put a statement inside another statement F(F)
     compose :: Statement -> Statement -> Statement
-    -- This composes a while, I keep concatenating statements until I reach a negative guard; to signal that I assign the termCond variable
+    -- I keep concatenating statements until I reach a negative guard; to signal that I assign the termCond variable
     compose (While b sta1) sta2  = If b (Concatenation sta1 sta2) (Assignment "termCond" (Avalue 1))        -- in case we have a while
 
-    -- from f, current composed statement, initial state and previous state, I get the final one
-    fix :: Statement -> Statement -> State -> State -> State
-    fix f sta s0 sn | (lookupVariable "termCond" sn1 /= Nothing) && sn == sn1 = sn1     -- I reached a fix point, return final state if the termination guard is false otherwise keep going forever
-                    | otherwise = fix f sta1 s0 sn1                 -- Do another application of f
-                    where sta1 = compose f sta                      -- compose F with the rest of the chain to get the statement of order +1
-                          sn1 = evalS sta1 s0                       -- Iteration f(n+1)
+    -- from f, current composed statement, initial state and previous state, I get the final state and the last composed statement
+    iter_ :: Statement -> Statement -> State -> State -> (State, Statement)
+    iter_ f sta s0 sn | (lookupVariable "termCond" sn1 /= Nothing) && sn == sn1 = (sn1, sta)     --  return final state and final composed statement if the termination guard is false otherwise keep going forever
+                      | otherwise = iter_ f sta1 s0 sn1               -- do all another applications of f
+                      where sta1 = compose f sta                      -- do another composition of the statements
+                            sn1 = evalS sta1 s0                       -- evaluate the new composition
+
+    iter :: Statement -> Statement -> State -> State -> State
+    iter f sta s0 sn = sf
+                        where (sf, staf) = iter_ f sta s0 sn 

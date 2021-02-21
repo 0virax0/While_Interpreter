@@ -64,7 +64,7 @@ module Parser where
 
     parseStatement (SynStatement [Terminal "for", assignment, Terminal ";", b, Terminal ";", increment, Terminal "do", st]) = 
       Concatenation (parseStatement assignment) (While (parseBexpr b) (Concatenation (parseStatement st) (parseStatement increment)))
-    parseStatement (SynStatement [Terminal "repeat", st, Terminal "until", b]) = While (Not (parseBexpr b)) (parseStatement st)
+    parseStatement (SynStatement [Terminal "repeat", st, Terminal "until", b]) = Concatenation (parseStatement st) (While (Not (parseBexpr b)) (parseStatement st))
     parseStatement (SynStatement [Terminal "if", b, Terminal "then", st1, Terminal "else", st2]) = If (parseBexpr b) (parseStatement st1) (parseStatement st2)
     parseStatement (SynStatement [st1, Terminal ";", st2]) = Concatenation (parseStatement st1) (parseStatement st2)
     parseStatement s = error ("error parsing Statement: " ++ show s)
