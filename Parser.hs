@@ -2,6 +2,7 @@ module Parser where
     import qualified Data.Map.Strict as Map
     import Statements
     import Text.Read
+    import St
     -- I parse the Input building a syntax tree, from it I create the semantics
     data SyntaxTree = Terminal String | SynStatement [SyntaxTree]   deriving Show
 
@@ -37,7 +38,7 @@ module Parser where
     parseAexpr :: SyntaxTree -> Aexpr
     parseAexpr (Terminal t) | n == Nothing = Aname t         -- Avalues and Anames are contained in terminals
                             where n = readMaybe t :: Maybe Int
-    parseAexpr (Terminal t) = Avalue (read t :: Int)
+    parseAexpr (Terminal t) = Avalue (Num(read t :: Integer))
     parseAexpr (SynStatement [op1, Terminal "+", op2]) = Sum (parseAexpr op1) (parseAexpr op2)
     parseAexpr (SynStatement [op1, Terminal "-", op2]) = Sub (parseAexpr op1) (parseAexpr op2)
     parseAexpr (SynStatement [op1, Terminal "*", op2]) = Mul (parseAexpr op1) (parseAexpr op2)
@@ -60,6 +61,7 @@ module Parser where
     parseStatement (SynStatement [Terminal var, Terminal ":=", val]) = Assignment var (parseAexpr val)
     parseStatement (SynStatement [Terminal var, Terminal "+=", val]) = Assignment var (Sum (parseAexpr (Terminal var)) (parseAexpr val))
     parseStatement (SynStatement [Terminal var, Terminal "-=", val]) = Assignment var (Sub (parseAexpr (Terminal var)) (parseAexpr val))
+    parseStatement (SynStatement [Terminal var, Terminal "*=", val]) = Assignment var (Mul (parseAexpr (Terminal var)) (parseAexpr val))
     parseStatement (SynStatement [Terminal "while", b, Terminal "do", st]) = While (parseBexpr b) (parseStatement st)
 
     parseStatement (SynStatement [Terminal "for", assignment, Terminal ";", b, Terminal ";", increment, Terminal "do", st]) = 
